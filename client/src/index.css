@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --primary: hsl(142, 71%, 45%);
+  --primary-foreground: hsl(355, 7%, 97%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --accent: hsl(12, 76%, 61%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+  
+  /* Custom music app colors */
+  --music-primary: hsl(142, 71%, 45%);
+  --music-secondary: hsl(240, 10%, 7%);
+  --music-accent: hsl(12, 76%, 61%);
+  --music-card: hsl(240, 8%, 16%);
+  --music-text-primary: hsl(0, 0%, 98%);
+  --music-text-secondary: hsl(0, 0%, 70%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background-color: var(--music-secondary);
+    color: var(--music-text-primary);
+  }
+
+  .music-gradient {
+    background: linear-gradient(135deg, var(--music-primary) 0%, var(--music-accent) 100%);
+  }
+
+  .music-card {
+    background-color: var(--music-card);
+    backdrop-filter: blur(10px);
+  }
+
+  .music-card-hover {
+    transition: all 0.2s ease;
+  }
+
+  .music-card-hover:hover {
+    background-color: hsl(240, 8%, 20%);
+    transform: translateY(-2px);
+  }
+
+  .mini-player-slide {
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+  }
+
+  .mini-player-slide.show {
+    transform: translateY(0);
+  }
+
+  .floating-player {
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+  }
+
+  .floating-player.show {
+    transform: translateY(0);
+  }
+
+  .progress-bar {
+    appearance: none;
+    height: 4px;
+    background: var(--music-card);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  .progress-bar::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--music-primary);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .progress-bar::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: var(--music-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+
+  .search-input {
+    background: var(--music-card);
+    border: 1px solid hsl(240, 3.7%, 25%);
+    transition: all 0.2s ease;
+  }
+
+  .search-input:focus {
+    border-color: var(--music-primary);
+    box-shadow: 0 0 0 2px hsla(142, 71%, 45%, 0.1);
+  }
+
+  .nav-item {
+    color: var(--music-text-secondary);
+    transition: color 0.2s ease;
+  }
+
+  .nav-item.active {
+    color: var(--music-primary);
+  }
+
+  .nav-item:hover {
+    color: var(--music-text-primary);
+  }
+
+  .download-progress {
+    background: linear-gradient(90deg, var(--music-primary) 0%, var(--music-accent) 100%);
+    height: 2px;
+    border-radius: 1px;
+    transition: width 0.3s ease;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--music-card) 25%, hsl(240, 8%, 20%) 50%, var(--music-card) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  .fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .pulse-play {
+    animation: pulsePlay 1s infinite;
+  }
+
+  @keyframes pulsePlay {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+}
