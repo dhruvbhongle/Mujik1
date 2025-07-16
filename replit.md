@@ -121,4 +121,22 @@ Preferred communication style: Simple, everyday language.
 - **Storage Interface**: Abstracted storage layer supports multiple implementations
 - **Memory Storage**: In-memory storage for development/testing
 
+## Recent Changes
+
+### July 16, 2025 - Search Functionality & Multi-Language Support
+- Fixed search API endpoints to use correct `query` parameter instead of `q`
+- Added category-based song endpoints for different languages (Bollywood, Marathi, Telugu, Hollywood, Kannada, Punjabi, Tamil, Gujarati)
+- Implemented multi-language home page with separate sections for each category
+- Fixed TypeScript errors in storage layer for proper null handling
+- Updated API response parsing to handle `response.data.data.results` structure
+- Added "Play All" functionality for each category section
+- Improved search results display with proper type conversion
+
+### Features Added
+- Multi-language music discovery (8 different categories)
+- Category-based song recommendations that refresh daily
+- Enhanced search functionality with debounced input
+- Real-time API integration with JioSaavn
+- Proper error handling for API failures
+
 The application follows a modern full-stack architecture with clear separation of concerns, type safety throughout, and a focus on user experience with features like real-time search, audio playback, and download management.

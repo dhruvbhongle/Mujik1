@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getFeaturedSongs } from "@/lib/saavn-api";
+import { getFeaturedSongs, getCategorySongs } from "@/lib/saavn-api";
 import { useAudioPlayer } from "@/hooks/use-audio-player";
 import SongCard from "@/components/song-card";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,31 +10,80 @@ import type { Song } from "@shared/schema";
 export default function Home() {
   const { setQueue, playSong } = useAudioPlayer();
 
-  const { data: featuredSongs, isLoading } = useQuery({
+  // Get different categories based on the day of the week for variety
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  
+  const categories = [
+    { id: 'bollywood', name: 'Bollywood Hits', color: 'from-pink-500 to-rose-500' },
+    { id: 'hollywood', name: 'Hollywood Hits', color: 'from-blue-500 to-purple-500' },
+    { id: 'marathi', name: 'Marathi Songs', color: 'from-orange-500 to-red-500' },
+    { id: 'telugu', name: 'Telugu Songs', color: 'from-green-500 to-emerald-500' },
+    { id: 'kannada', name: 'Kannada Songs', color: 'from-yellow-500 to-orange-500' },
+    { id: 'punjabi', name: 'Punjabi Songs', color: 'from-indigo-500 to-blue-500' },
+    { id: 'tamil', name: 'Tamil Songs', color: 'from-purple-500 to-pink-500' },
+  ];
+
+  const { data: featuredSongs, isLoading: featuredLoading } = useQuery({
     queryKey: ["/api/songs/featured"],
     queryFn: getFeaturedSongs,
   });
 
+  const { data: bollywoodSongs, isLoading: bollywoodLoading } = useQuery({
+    queryKey: ["/api/songs/category/bollywood"],
+    queryFn: () => getCategorySongs('bollywood'),
+  });
+
+  const { data: hollywoodSongs, isLoading: hollywoodLoading } = useQuery({
+    queryKey: ["/api/songs/category/hollywood"],
+    queryFn: () => getCategorySongs('hollywood'),
+  });
+
+  const { data: marathiSongs, isLoading: marathiLoading } = useQuery({
+    queryKey: ["/api/songs/category/marathi"],
+    queryFn: () => getCategorySongs('marathi'),
+  });
+
+  const { data: teluguSongs, isLoading: teluguLoading } = useQuery({
+    queryKey: ["/api/songs/category/telugu"],
+    queryFn: () => getCategorySongs('telugu'),
+  });
+
+  const { data: kannadaSongs, isLoading: kannadaLoading } = useQuery({
+    queryKey: ["/api/songs/category/kannada"],
+    queryFn: () => getCategorySongs('kannada'),
+  });
+
+  const convertToSong = (song: any): Song => ({
+    id: song.id,
+    name: song.name,
+    artist: song.artist,
+    album: song.album,
+    image: song.image,
+    duration: song.duration,
+    url: song.url,
+    downloadUrl: song.downloadUrl,
+    quality: song.quality,
+    language: song.language,
+    year: song.year,
+    isDownloaded: false,
+    downloadedAt: null,
+    fileSize: null,
+  });
+
   const handlePlayFeatured = () => {
     if (featuredSongs && featuredSongs.length > 0) {
-      const songs: Song[] = featuredSongs.map(song => ({
-        id: song.id,
-        name: song.name,
-        artist: song.artist,
-        album: song.album,
-        image: song.image,
-        duration: song.duration,
-        url: song.url,
-        downloadUrl: song.downloadUrl,
-        quality: song.quality,
-        language: song.language,
-        year: song.year,
-        isDownloaded: false,
-        downloadedAt: null,
-        fileSize: null,
-      }));
+      const songs: Song[] = featuredSongs.map(convertToSong);
       setQueue(songs);
       playSong(songs[0]);
+    }
+  };
+
+  const handlePlayCategory = (songs: any[]) => {
+    if (songs && songs.length > 0) {
+      const convertedSongs: Song[] = songs.map(convertToSong);
+      setQueue(convertedSongs);
+      playSong(convertedSongs[0]);
     }
   };
 
@@ -68,11 +117,21 @@ export default function Home() {
         </Card>
       </section>
 
-      {/* Recently Played Section */}
+      {/* Bollywood Hits Section */}
       <section>
-        <h2 className="text-2xl font-bold text-foreground mb-4">Recently Played</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-foreground">Bollywood Hits</h2>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handlePlayCategory(bollywoodSongs || [])}
+            className="text-primary hover:text-primary/80"
+          >
+            Play All
+          </Button>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {isLoading ? (
+          {bollywoodLoading ? (
             Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="music-card rounded-xl p-4">
                 <div className="flex items-center space-x-3">
@@ -85,25 +144,162 @@ export default function Home() {
               </div>
             ))
           ) : (
-            featuredSongs?.slice(0, 6).map((song) => (
+            bollywoodSongs?.slice(0, 6).map((song) => (
               <SongCard
                 key={song.id}
-                song={{
-                  id: song.id,
-                  name: song.name,
-                  artist: song.artist,
-                  album: song.album,
-                  image: song.image,
-                  duration: song.duration,
-                  url: song.url,
-                  downloadUrl: song.downloadUrl,
-                  quality: song.quality,
-                  language: song.language,
-                  year: song.year,
-                  isDownloaded: false,
-                  downloadedAt: null,
-                  fileSize: null,
-                }}
+                song={convertToSong(song)}
+                showAlbum={false}
+              />
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* Hollywood Hits Section */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-foreground">Hollywood Hits</h2>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handlePlayCategory(hollywoodSongs || [])}
+            className="text-primary hover:text-primary/80"
+          >
+            Play All
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {hollywoodLoading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="music-card rounded-xl p-4">
+                <div className="flex items-center space-x-3">
+                  <Skeleton className="w-12 h-12 rounded-lg" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            hollywoodSongs?.slice(0, 6).map((song) => (
+              <SongCard
+                key={song.id}
+                song={convertToSong(song)}
+                showAlbum={false}
+              />
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* Marathi Songs Section */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-foreground">Marathi Songs</h2>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handlePlayCategory(marathiSongs || [])}
+            className="text-primary hover:text-primary/80"
+          >
+            Play All
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {marathiLoading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="music-card rounded-xl p-4">
+                <div className="flex items-center space-x-3">
+                  <Skeleton className="w-12 h-12 rounded-lg" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            marathiSongs?.slice(0, 6).map((song) => (
+              <SongCard
+                key={song.id}
+                song={convertToSong(song)}
+                showAlbum={false}
+              />
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* Telugu Songs Section */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-foreground">Telugu Songs</h2>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handlePlayCategory(teluguSongs || [])}
+            className="text-primary hover:text-primary/80"
+          >
+            Play All
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {teluguLoading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="music-card rounded-xl p-4">
+                <div className="flex items-center space-x-3">
+                  <Skeleton className="w-12 h-12 rounded-lg" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            teluguSongs?.slice(0, 6).map((song) => (
+              <SongCard
+                key={song.id}
+                song={convertToSong(song)}
+                showAlbum={false}
+              />
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* Kannada Songs Section */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-foreground">Kannada Songs</h2>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handlePlayCategory(kannadaSongs || [])}
+            className="text-primary hover:text-primary/80"
+          >
+            Play All
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {kannadaLoading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="music-card rounded-xl p-4">
+                <div className="flex items-center space-x-3">
+                  <Skeleton className="w-12 h-12 rounded-lg" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            kannadaSongs?.slice(0, 6).map((song) => (
+              <SongCard
+                key={song.id}
+                song={convertToSong(song)}
                 showAlbum={false}
               />
             ))
@@ -115,7 +311,7 @@ export default function Home() {
       <section>
         <h2 className="text-2xl font-bold text-foreground mb-4">Top Charts</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {isLoading ? (
+          {featuredLoading ? (
             Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="music-card rounded-xl p-4">
                 <Skeleton className="w-full aspect-square rounded-lg mb-3" />
@@ -136,22 +332,7 @@ export default function Home() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => playSong({
-                    id: song.id,
-                    name: song.name,
-                    artist: song.artist,
-                    album: song.album,
-                    image: song.image,
-                    duration: song.duration,
-                    url: song.url,
-                    downloadUrl: song.downloadUrl,
-                    quality: song.quality,
-                    language: song.language,
-                    year: song.year,
-                    isDownloaded: false,
-                    downloadedAt: null,
-                    fileSize: null,
-                  })}
+                  onClick={() => playSong(convertToSong(song))}
                   className="absolute top-2 right-2 w-8 h-8 bg-primary rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">

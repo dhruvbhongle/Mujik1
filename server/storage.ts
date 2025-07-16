@@ -38,6 +38,9 @@ export class MemStorage implements IStorage {
   async createSong(insertSong: InsertSong): Promise<Song> {
     const song: Song = {
       ...insertSong,
+      downloadUrl: insertSong.downloadUrl || null,
+      language: insertSong.language || null,
+      year: insertSong.year || null,
       isDownloaded: insertSong.isDownloaded || false,
       downloadedAt: insertSong.downloadedAt || null,
       fileSize: insertSong.fileSize || null,
@@ -86,6 +89,9 @@ export class MemStorage implements IStorage {
     const playlist: Playlist = {
       id,
       ...insertPlaylist,
+      image: insertPlaylist.image || null,
+      description: insertPlaylist.description || null,
+      songIds: insertPlaylist.songIds || null,
       createdAt: new Date(),
     };
     this.playlists.set(id, playlist);

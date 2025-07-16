@@ -18,13 +18,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const response = await axios.get(`${SAAVN_API_BASE}/search/songs`, {
-        params: { q, page, limit },
+        params: { query: q, page, limit },
         timeout: 10000,
       });
 
       const searchResponse: SearchResponse = {
-        results: response.data.results || [],
-        total: response.data.total || 0,
+        results: response.data.data?.results || [],
+        total: response.data.data?.total || 0,
         page: Number(page),
       };
 
@@ -109,14 +109,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/songs/featured", async (req, res) => {
     try {
       const response = await axios.get(`${SAAVN_API_BASE}/search/songs`, {
-        params: { q: "trending", limit: 10 },
+        params: { query: "trending bollywood", limit: 10 },
         timeout: 10000,
       });
 
-      res.json(response.data.results || []);
+      res.json(response.data.data?.results || []);
     } catch (error) {
       console.error("Featured songs error:", error);
       res.status(500).json({ error: "Failed to get featured songs" });
+    }
+  });
+
+  // Get category-based songs
+  app.get("/api/songs/category/:category", async (req, res) => {
+    try {
+      const { category } = req.params;
+      const categoryQueries = {
+        bollywood: "bollywood hindi latest",
+        marathi: "marathi latest songs",
+        telugu: "telugu latest songs",
+        hollywood: "english latest songs",
+        kannada: "kannada latest songs",
+        punjabi: "punjabi latest songs",
+        tamil: "tamil latest songs",
+        gujarati: "gujarati latest songs"
+      };
+      
+      const query = categoryQueries[category as keyof typeof categoryQueries] || category;
+      
+      const response = await axios.get(`${SAAVN_API_BASE}/search/songs`, {
+        params: { query, limit: 10 },
+        timeout: 10000,
+      });
+
+      res.json(response.data.data?.results || []);
+    } catch (error) {
+      console.error("Category songs error:", error);
+      res.status(500).json({ error: "Failed to get category songs" });
     }
   });
 

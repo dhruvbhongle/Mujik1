@@ -23,3 +23,11 @@ export async function getFeaturedSongs(): Promise<SaavnSong[]> {
   }
   return response.json();
 }
+
+export async function getCategorySongs(category: string): Promise<SaavnSong[]> {
+  const response = await fetch(`/api/songs/category/${category}`);
+  if (!response.ok) {
+    throw new Error("Failed to get category songs");
+  }
+  return response.json();
+}
