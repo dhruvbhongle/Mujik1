@@ -7,6 +7,25 @@ import { z } from "zod";
 
 const SAAVN_API_BASE = "https://saavn.dev/api";
 
+// Helper function to transform song data consistently
+function transformSongData(song: any) {
+  // Find the best quality URL (prefer 320kbps, 160kbps, 96kbps, then fallback)
+  const bestQuality = song.downloadUrl?.find((url: any) => url.quality === '320kbps') ||
+                     song.downloadUrl?.find((url: any) => url.quality === '160kbps') ||
+                     song.downloadUrl?.find((url: any) => url.quality === '96kbps') ||
+                     song.downloadUrl?.[song.downloadUrl.length - 1];
+  
+  return {
+    ...song,
+    artist: song.artists?.primary?.[0]?.name || song.artist || 'Unknown Artist',
+    album: song.album?.name || song.album || 'Unknown Album',
+    image: song.image?.[song.image.length - 1]?.url || song.image || '',
+    url: bestQuality?.url || '',
+    downloadUrl: bestQuality?.url || '',
+    quality: bestQuality?.quality || '12kbps',
+  };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Search songs using Saavn API
   app.get("/api/search/songs", async (req, res) => {
@@ -23,22 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const searchResponse: SearchResponse = {
-        results: response.data.data?.results?.map((song: any) => {
-          // Find the best quality URL (prefer 320kbps, 160kbps, 96kbps, then fallback)
-          const bestQuality = song.downloadUrl?.find((url: any) => url.quality === '320kbps') ||
-                             song.downloadUrl?.find((url: any) => url.quality === '160kbps') ||
-                             song.downloadUrl?.find((url: any) => url.quality === '96kbps') ||
-                             song.downloadUrl?.[song.downloadUrl.length - 1];
-          
-          return {
-            ...song,
-            artist: song.artists?.primary?.[0]?.name || song.artist || 'Unknown Artist',
-            album: song.album?.name || song.album || 'Unknown Album',
-            url: bestQuality?.url || '',
-            downloadUrl: bestQuality?.url || '',
-            quality: bestQuality?.quality || '12kbps',
-          };
-        }) || [],
+        results: response.data.data?.results?.map(transformSongData) || [],
         total: response.data.data?.total || 0,
         page: Number(page),
       };
@@ -69,22 +73,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timeout: 10000,
       });
 
-      const songs = response.data.data?.results?.map((song: any) => {
-        // Find the best quality URL (prefer 320kbps, 160kbps, 96kbps, then fallback)
-        const bestQuality = song.downloadUrl?.find((url: any) => url.quality === '320kbps') ||
-                           song.downloadUrl?.find((url: any) => url.quality === '160kbps') ||
-                           song.downloadUrl?.find((url: any) => url.quality === '96kbps') ||
-                           song.downloadUrl?.[song.downloadUrl.length - 1];
-        
-        return {
-          ...song,
-          artist: song.artists?.primary?.[0]?.name || song.artist || 'Unknown Artist',
-          album: song.album?.name || song.album || 'Unknown Album',
-          url: bestQuality?.url || '',
-          downloadUrl: bestQuality?.url || '',
-          quality: bestQuality?.quality || '12kbps',
-        };
-      }) || [];
+      const songs = response.data.data?.results?.map(transformSongData) || [];
       
       res.json(songs);
     } catch (error) {
@@ -174,22 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timeout: 10000,
       });
 
-      const songs = response.data.data?.results?.map((song: any) => {
-        // Find the best quality URL (prefer 320kbps, 160kbps, 96kbps, then fallback)
-        const bestQuality = song.downloadUrl?.find((url: any) => url.quality === '320kbps') ||
-                           song.downloadUrl?.find((url: any) => url.quality === '160kbps') ||
-                           song.downloadUrl?.find((url: any) => url.quality === '96kbps') ||
-                           song.downloadUrl?.[song.downloadUrl.length - 1];
-        
-        return {
-          ...song,
-          artist: song.artists?.primary?.[0]?.name || song.artist || 'Unknown Artist',
-          album: song.album?.name || song.album || 'Unknown Album',
-          url: bestQuality?.url || '',
-          downloadUrl: bestQuality?.url || '',
-          quality: bestQuality?.quality || '12kbps',
-        };
-      }) || [];
+      const songs = response.data.data?.results?.map(transformSongData) || [];
       
       res.json(songs);
     } catch (error) {

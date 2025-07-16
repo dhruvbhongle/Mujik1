@@ -85,6 +85,11 @@ export default function SongCard({ song, showAlbum = true, showDownload = true, 
             src={song.image}
             alt={`${song.name} album art`}
             className="w-12 h-12 rounded-lg object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0iaHNsKDI0MCwgOCUsIDE2JSUifS8+CjxwYXRoIGQ9Ik0yNCAxMlYyMi41NUMyMy40MSAyMi4yMSAyMi43MyAyMiAyMiAyMkMxOS43OSAyMiAxOCAyMy43OSAxOCAyNlMxOS43OSAzMCAyMiAzMCAyNiAyOC4yMSAyNiAyNlYxOEgzMFYxMkgyNFoiIGZpbGw9ImhzbCgxNDIsIDcxJSwgNDUlKSIvPgo8L3N2Zz4K';
+            }}
+            loading="lazy"
           />
           {isCurrentSong && (
             <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
