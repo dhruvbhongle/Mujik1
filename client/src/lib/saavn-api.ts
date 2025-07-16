@@ -1,7 +1,7 @@
 import type { SearchResponse, SaavnSong } from "@shared/schema";
 
 export async function searchSongs(query: string, page = 1, limit = 20): Promise<SearchResponse> {
-  const response = await fetch(`/api/search/songs?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
+  const response = await fetch(`/api/search/songs?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
   if (!response.ok) {
     throw new Error("Failed to search songs");
   }

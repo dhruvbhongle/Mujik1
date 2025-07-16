@@ -11,14 +11,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Search songs using Saavn API
   app.get("/api/search/songs", async (req, res) => {
     try {
-      const { q, page = 1, limit = 20 } = req.query;
+      const { query, page = 1, limit = 20 } = req.query;
       
-      if (!q) {
+      if (!query) {
         return res.status(400).json({ error: "Search query is required" });
       }
 
       const response = await axios.get(`${SAAVN_API_BASE}/search/songs`, {
-        params: { query: q, page, limit },
+        params: { query, page, limit },
         timeout: 10000,
       });
 
