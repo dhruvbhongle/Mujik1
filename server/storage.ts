@@ -1,9 +1,10 @@
-import { songs, playlists, type Song, type InsertSong, type Playlist, type InsertPlaylist } from "@shared/schema";
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
+import { songs, playlists, users, sessions, type Song, type InsertSong, type Playlist, type InsertPlaylist, type User, type InsertUser, type Session, type InsertSession } from "@shared/schema";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import { eq } from "drizzle-orm";
 
 export interface IStorage {
+  // Songs
   getSong(id: string): Promise<Song | undefined>;
   getSongs(): Promise<Song[]>;
   createSong(song: InsertSong): Promise<Song>;
@@ -12,22 +13,44 @@ export interface IStorage {
   getDownloadedSongs(): Promise<Song[]>;
   markSongAsDownloaded(id: string, fileSize: number): Promise<void>;
   
+  // Playlists
   getPlaylist(id: number): Promise<Playlist | undefined>;
   getPlaylists(): Promise<Playlist[]>;
+  getUserPlaylists(userId: number): Promise<Playlist[]>;
   createPlaylist(playlist: InsertPlaylist): Promise<Playlist>;
   updatePlaylist(id: number, playlist: Partial<InsertPlaylist>): Promise<Playlist | undefined>;
   deletePlaylist(id: number): Promise<boolean>;
+  
+  // Users (for future authentication)
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
+  
+  // Sessions (for future authentication)
+  getSession(id: string): Promise<Session | undefined>;
+  createSession(session: InsertSession): Promise<Session>;
+  deleteSession(id: string): Promise<boolean>;
+  deleteUserSessions(userId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
   private songs: Map<string, Song>;
   private playlists: Map<number, Playlist>;
+  private users: Map<number, User>;
+  private sessions: Map<string, Session>;
   private playlistCurrentId: number;
+  private userCurrentId: number;
 
   constructor() {
     this.songs = new Map();
     this.playlists = new Map();
+    this.users = new Map();
+    this.sessions = new Map();
     this.playlistCurrentId = 1;
+    this.userCurrentId = 1;
   }
 
   async getSong(id: string): Promise<Song | undefined> {
@@ -113,6 +136,74 @@ export class MemStorage implements IStorage {
   async deletePlaylist(id: number): Promise<boolean> {
     return this.playlists.delete(id);
   }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.username === username);
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const user: User = {
+      id: this.userCurrentId++,
+      ...insertUser,
+      isEmailVerified: insertUser.isEmailVerified || false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  async updateUser(id: number, userUpdate: Partial<InsertUser>): Promise<User | undefined> {
+    const existing = this.users.get(id);
+    if (!existing) return undefined;
+    
+    const updated: User = { ...existing, ...userUpdate, updatedAt: new Date() };
+    this.users.set(id, updated);
+    return updated;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    return this.users.delete(id);
+  }
+
+  async getUserPlaylists(userId: number): Promise<Playlist[]> {
+    return Array.from(this.playlists.values()).filter(playlist => playlist.userId === userId);
+  }
+
+  // Session methods
+  async getSession(id: string): Promise<Session | undefined> {
+    return this.sessions.get(id);
+  }
+
+  async createSession(insertSession: InsertSession): Promise<Session> {
+    const session: Session = {
+      ...insertSession,
+      createdAt: new Date(),
+    };
+    this.sessions.set(session.id, session);
+    return session;
+  }
+
+  async deleteSession(id: string): Promise<boolean> {
+    return this.sessions.delete(id);
+  }
+
+  async deleteUserSessions(userId: number): Promise<void> {
+    for (const [sessionId, session] of this.sessions) {
+      if (session.userId === userId) {
+        this.sessions.delete(sessionId);
+      }
+    }
+  }
 }
 
 // Database storage implementation
@@ -124,11 +215,25 @@ export class DatabaseStorage implements IStorage {
     this.fallback = new MemStorage();
     try {
       if (process.env.DATABASE_URL) {
-        const sql = neon(process.env.DATABASE_URL);
-        this.db = drizzle(sql);
+        const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+        this.db = drizzle(pool);
+        // Test connection
+        this.testConnection();
       }
     } catch (error) {
       console.warn('Database connection failed, using in-memory storage:', error);
+      this.db = null;
+    }
+  }
+
+  private async testConnection() {
+    try {
+      if (this.db) {
+        await this.db.execute('SELECT NOW()');
+        console.log('✓ Database connected successfully');
+      }
+    } catch (error) {
+      console.warn('Database test failed, falling back to memory storage:', error);
       this.db = null;
     }
   }
@@ -274,6 +379,138 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.warn('Database error, falling back to memory:', error);
       return this.fallback.deletePlaylist(id);
+    }
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    if (!this.db) return this.fallback.getUser(id);
+    
+    try {
+      const result = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to memory:', error);
+      return this.fallback.getUser(id);
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    if (!this.db) return this.fallback.getUserByEmail(email);
+    
+    try {
+      const result = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to memory:', error);
+      return this.fallback.getUserByEmail(email);
+    }
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    if (!this.db) return this.fallback.getUserByUsername(username);
+    
+    try {
+      const result = await this.db.select().from(users).where(eq(users.username, username)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to memory:', error);
+      return this.fallback.getUserByUsername(username);
+    }
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    if (!this.db) return this.fallback.createUser(insertUser);
+    
+    try {
+      const result = await this.db.insert(users).values(insertUser).returning();
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to memory:', error);
+      return this.fallback.createUser(insertUser);
+    }
+  }
+
+  async updateUser(id: number, userUpdate: Partial<InsertUser>): Promise<User | undefined> {
+    if (!this.db) return this.fallback.updateUser(id, userUpdate);
+    
+    try {
+      const result = await this.db.update(users).set(userUpdate).where(eq(users.id, id)).returning();
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to memory:', error);
+      return this.fallback.updateUser(id, userUpdate);
+    }
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    if (!this.db) return this.fallback.deleteUser(id);
+    
+    try {
+      const result = await this.db.delete(users).where(eq(users.id, id)).returning();
+      return result.length > 0;
+    } catch (error) {
+      console.warn('Database error, falling back to memory:', error);
+      return this.fallback.deleteUser(id);
+    }
+  }
+
+  async getUserPlaylists(userId: number): Promise<Playlist[]> {
+    if (!this.db) return this.fallback.getUserPlaylists(userId);
+    
+    try {
+      return await this.db.select().from(playlists).where(eq(playlists.userId, userId));
+    } catch (error) {
+      console.warn('Database error, falling back to memory:', error);
+      return this.fallback.getUserPlaylists(userId);
+    }
+  }
+
+  // Session methods
+  async getSession(id: string): Promise<Session | undefined> {
+    if (!this.db) return this.fallback.getSession(id);
+    
+    try {
+      const result = await this.db.select().from(sessions).where(eq(sessions.id, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to memory:', error);
+      return this.fallback.getSession(id);
+    }
+  }
+
+  async createSession(insertSession: InsertSession): Promise<Session> {
+    if (!this.db) return this.fallback.createSession(insertSession);
+    
+    try {
+      const result = await this.db.insert(sessions).values(insertSession).returning();
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to memory:', error);
+      return this.fallback.createSession(insertSession);
+    }
+  }
+
+  async deleteSession(id: string): Promise<boolean> {
+    if (!this.db) return this.fallback.deleteSession(id);
+    
+    try {
+      const result = await this.db.delete(sessions).where(eq(sessions.id, id)).returning();
+      return result.length > 0;
+    } catch (error) {
+      console.warn('Database error, falling back to memory:', error);
+      return this.fallback.deleteSession(id);
+    }
+  }
+
+  async deleteUserSessions(userId: number): Promise<void> {
+    if (!this.db) return this.fallback.deleteUserSessions(userId);
+    
+    try {
+      await this.db.delete(sessions).where(eq(sessions.userId, userId));
+    } catch (error) {
+      console.warn('Database error, falling back to memory:', error);
+      return this.fallback.deleteUserSessions(userId);
     }
   }
 }
