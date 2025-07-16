@@ -123,6 +123,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### July 16, 2025 - Supabase Database Connection
+- Started setting up Supabase database connection for persistent storage
+- Identified DATABASE_URL connection issue - requires transaction pooler URL
+- User needs to update DATABASE_URL with pooler connection string (port 6543)
+- Once connected, will run migrations to create songs and playlists tables
+
 ### July 16, 2025 - Replit Environment Migration & Web Preview Fix
 - Successfully migrated from Replit Agent to Replit environment
 - Fixed critical web preview issue caused by incorrect NODE_ENV handling
