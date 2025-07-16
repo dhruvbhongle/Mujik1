@@ -57,8 +57,8 @@ export default function Home() {
   const convertToSong = (song: any): Song => ({
     id: song.id,
     name: song.name,
-    artist: typeof song.artist === 'string' ? song.artist : song.artist?.name || song.primaryArtists || 'Unknown Artist',
-    album: typeof song.album === 'string' ? song.album : song.album?.name || 'Unknown Album',
+    artist: song.artist,
+    album: song.album,
     image: song.image,
     duration: song.duration,
     url: song.url,

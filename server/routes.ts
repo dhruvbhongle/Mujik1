@@ -23,7 +23,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const searchResponse: SearchResponse = {
-        results: response.data.data?.results || [],
+        results: response.data.data?.results?.map((song: any) => {
+          // Find the best quality URL (prefer 320kbps, 160kbps, 96kbps, then fallback)
+          const bestQuality = song.downloadUrl?.find((url: any) => url.quality === '320kbps') ||
+                             song.downloadUrl?.find((url: any) => url.quality === '160kbps') ||
+                             song.downloadUrl?.find((url: any) => url.quality === '96kbps') ||
+                             song.downloadUrl?.[song.downloadUrl.length - 1];
+          
+          return {
+            ...song,
+            artist: song.artists?.primary?.[0]?.name || song.artist || 'Unknown Artist',
+            album: song.album?.name || song.album || 'Unknown Album',
+            url: bestQuality?.url || '',
+            downloadUrl: bestQuality?.url || '',
+            quality: bestQuality?.quality || '12kbps',
+          };
+        }) || [],
         total: response.data.data?.total || 0,
         page: Number(page),
       };
@@ -35,12 +50,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get downloaded songs
+  app.get("/api/songs/downloaded", async (req, res) => {
+    try {
+      const downloadedSongs = await storage.getDownloadedSongs();
+      res.json(downloadedSongs);
+    } catch (error) {
+      console.error("Get downloaded songs error:", error);
+      res.status(500).json({ error: "Failed to get downloaded songs" });
+    }
+  });
+
+  // Get featured/trending songs
+  app.get("/api/songs/featured", async (req, res) => {
+    try {
+      const response = await axios.get(`${SAAVN_API_BASE}/search/songs`, {
+        params: { query: "trending bollywood", limit: 10 },
+        timeout: 10000,
+      });
+
+      const songs = response.data.data?.results?.map((song: any) => {
+        // Find the best quality URL (prefer 320kbps, 160kbps, 96kbps, then fallback)
+        const bestQuality = song.downloadUrl?.find((url: any) => url.quality === '320kbps') ||
+                           song.downloadUrl?.find((url: any) => url.quality === '160kbps') ||
+                           song.downloadUrl?.find((url: any) => url.quality === '96kbps') ||
+                           song.downloadUrl?.[song.downloadUrl.length - 1];
+        
+        return {
+          ...song,
+          artist: song.artists?.primary?.[0]?.name || song.artist || 'Unknown Artist',
+          album: song.album?.name || song.album || 'Unknown Album',
+          url: bestQuality?.url || '',
+          downloadUrl: bestQuality?.url || '',
+          quality: bestQuality?.quality || '12kbps',
+        };
+      }) || [];
+      
+      res.json(songs);
+    } catch (error) {
+      console.error("Featured songs error:", error);
+      res.status(500).json({ error: "Failed to get featured songs" });
+    }
+  });
+
   // Get song details
   app.get("/api/songs/:id", async (req, res) => {
     try {
       const { id } = req.params;
       
-      const response = await axios.get(`${SAAVN_API_BASE}/song/${id}`, {
+      const response = await axios.get(`${SAAVN_API_BASE}/songs/${id}`, {
         timeout: 10000,
       });
 
@@ -60,17 +118,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Save song error:", error);
       res.status(400).json({ error: "Failed to save song" });
-    }
-  });
-
-  // Get downloaded songs
-  app.get("/api/songs/downloaded", async (req, res) => {
-    try {
-      const downloadedSongs = await storage.getDownloadedSongs();
-      res.json(downloadedSongs);
-    } catch (error) {
-      console.error("Get downloaded songs error:", error);
-      res.status(500).json({ error: "Failed to get downloaded songs" });
     }
   });
 
@@ -105,21 +152,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get featured/trending songs
-  app.get("/api/songs/featured", async (req, res) => {
-    try {
-      const response = await axios.get(`${SAAVN_API_BASE}/search/songs`, {
-        params: { query: "trending bollywood", limit: 10 },
-        timeout: 10000,
-      });
-
-      res.json(response.data.data?.results || []);
-    } catch (error) {
-      console.error("Featured songs error:", error);
-      res.status(500).json({ error: "Failed to get featured songs" });
-    }
-  });
-
   // Get category-based songs
   app.get("/api/songs/category/:category", async (req, res) => {
     try {
@@ -142,7 +174,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timeout: 10000,
       });
 
-      res.json(response.data.data?.results || []);
+      const songs = response.data.data?.results?.map((song: any) => {
+        // Find the best quality URL (prefer 320kbps, 160kbps, 96kbps, then fallback)
+        const bestQuality = song.downloadUrl?.find((url: any) => url.quality === '320kbps') ||
+                           song.downloadUrl?.find((url: any) => url.quality === '160kbps') ||
+                           song.downloadUrl?.find((url: any) => url.quality === '96kbps') ||
+                           song.downloadUrl?.[song.downloadUrl.length - 1];
+        
+        return {
+          ...song,
+          artist: song.artists?.primary?.[0]?.name || song.artist || 'Unknown Artist',
+          album: song.album?.name || song.album || 'Unknown Album',
+          url: bestQuality?.url || '',
+          downloadUrl: bestQuality?.url || '',
+          quality: bestQuality?.quality || '12kbps',
+        };
+      }) || [];
+      
+      res.json(songs);
     } catch (error) {
       console.error("Category songs error:", error);
       res.status(500).json({ error: "Failed to get category songs" });
