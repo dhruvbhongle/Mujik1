@@ -16,7 +16,6 @@ export default function FloatingPlayer() {
     playNext,
     playPrevious,
     seekTo,
-    isLoadingRelated,
   } = useAudioPlayer();
 
   const { toast } = useToast();
@@ -76,12 +75,7 @@ export default function FloatingPlayer() {
               <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
             </svg>
           </Button>
-          <h2 className="font-medium text-foreground">
-            Now Playing
-            {isLoadingRelated && (
-              <span className="ml-2 text-xs text-muted-foreground">(Loading next...)</span>
-            )}
-          </h2>
+          <h2 className="font-medium text-foreground">Now Playing</h2>
           <Button
             variant="ghost"
             size="sm"
