@@ -66,15 +66,15 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     audioRef.current = new Audio();
     const audio = audioRef.current;
 
-    audio.addEventListener('loadedmetadata', () => {
+    const handleLoadedMetadata = () => {
       setDuration(audio.duration);
-    });
+    };
 
-    audio.addEventListener('timeupdate', () => {
+    const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
-    });
+    };
 
-    audio.addEventListener('ended', async () => {
+    const handleEnded = async () => {
       if (queue.length > 0 && currentIndex < queue.length - 1) {
         // If there are more songs in the queue, play the next one
         playNext();
@@ -82,18 +82,27 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         // If auto-play is enabled and no more songs in queue, find related songs
         await playRelatedSong();
       }
-    });
+    };
 
-    audio.addEventListener('error', (e) => {
+    const handleError = (e) => {
       console.error('Audio error:', e);
       setIsPlaying(false);
-    });
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
 
     return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
       audio.pause();
       audio.src = '';
     };
-  }, []);
+  }, [queue, currentIndex, autoPlayEnabled, currentSong, playNext, playRelatedSong]);
 
   const playSong = useCallback((song: Song) => {
     if (!audioRef.current) return;
