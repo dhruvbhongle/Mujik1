@@ -16,7 +16,7 @@ interface AudioPlayerContextType {
   showFloatingPlayer: boolean;
   autoPlayEnabled: boolean;
   isLoadingRelated: boolean;
-  
+
   // Actions
   playSong: (song: Song) => void;
   pauseSong: () => void;
@@ -57,7 +57,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const [showFloatingPlayer, setShowFloatingPlayer] = useState(false);
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(true);
   const [isLoadingRelated, setIsLoadingRelated] = useState(false);
-  
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -101,11 +101,11 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     const audio = audioRef.current;
     setCurrentSong(song);
     setShowMiniPlayer(true);
-    
+
     // Use the streaming URL or fallback to download URL
     audio.src = song.url || song.downloadUrl || '';
     audio.load();
-    
+
     audio.play().then(() => {
       setIsPlaying(true);
     }).catch((error) => {
@@ -198,7 +198,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       // Search for related songs using artist name first, then song name as fallback
       let searchQuery = currentSong.artist;
       let relatedSongs = await getRelatedSongs(searchQuery);
-      
+
       // If no results with artist, try with song name
       if (relatedSongs.length === 0) {
         searchQuery = currentSong.name;
@@ -211,7 +211,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         if (filteredSongs.length > 0) {
           const randomIndex = Math.floor(Math.random() * filteredSongs.length);
           const nextSong = filteredSongs[randomIndex];
-          
+
           // Convert SaavnSong to Song format
           const songToPlay: Song = {
             id: nextSong.id,
@@ -227,7 +227,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
             downloadedAt: null,
             fileSize: null,
           };
-          
+
           playSong(songToPlay);
         }
       }
@@ -258,7 +258,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     showFloatingPlayer,
     autoPlayEnabled,
     isLoadingRelated,
-    
+
     playSong,
     pauseSong,
     resumeSong,
