@@ -31,3 +31,12 @@ export async function getCategorySongs(category: string): Promise<SaavnSong[]> {
   }
   return response.json();
 }
+
+export async function getRelatedSongs(query: string): Promise<SaavnSong[]> {
+  const response = await fetch(`/api/search/songs?query=${encodeURIComponent(query)}&limit=10`);
+  if (!response.ok) {
+    throw new Error("Failed to get related songs");
+  }
+  const data = await response.json();
+  return data.results || [];
+}

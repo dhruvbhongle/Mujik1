@@ -16,6 +16,9 @@ export default function FloatingPlayer() {
     playNext,
     playPrevious,
     seekTo,
+    autoPlayEnabled,
+    isLoadingRelated,
+    toggleAutoPlay,
   } = useAudioPlayer();
 
   const { toast } = useToast();
@@ -75,7 +78,12 @@ export default function FloatingPlayer() {
               <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
             </svg>
           </Button>
-          <h2 className="font-medium text-foreground">Now Playing</h2>
+          <h2 className="font-medium text-foreground">
+            Now Playing
+            {isLoadingRelated && (
+              <span className="ml-2 text-xs text-muted-foreground">(Loading next...)</span>
+            )}
+          </h2>
           <Button
             variant="ghost"
             size="sm"
@@ -178,6 +186,17 @@ export default function FloatingPlayer() {
           
           {/* Additional Controls */}
           <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleAutoPlay}
+              className={`${autoPlayEnabled ? 'text-primary' : 'text-muted-foreground'} hover:text-foreground`}
+              title={autoPlayEnabled ? 'Disable auto-play' : 'Enable auto-play'}
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+            </Button>
             <Button
               variant="ghost"
               size="sm"

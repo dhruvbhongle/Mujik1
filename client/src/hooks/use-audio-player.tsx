@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import type { Song } from "@shared/schema";
+import { getRelatedSongs } from "@/lib/saavn-api";
 
 interface AudioPlayerContextType {
   currentSong: Song | null;
@@ -13,6 +14,8 @@ interface AudioPlayerContextType {
   currentIndex: number;
   showMiniPlayer: boolean;
   showFloatingPlayer: boolean;
+  autoPlayEnabled: boolean;
+  isLoadingRelated: boolean;
   
   // Actions
   playSong: (song: Song) => void;
@@ -27,6 +30,8 @@ interface AudioPlayerContextType {
   setQueue: (songs: Song[]) => void;
   showFloatingPlayerModal: () => void;
   hideFloatingPlayerModal: () => void;
+  playRelatedSong: () => Promise<void>;
+  toggleAutoPlay: () => void;
 }
 
 const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(undefined);
@@ -50,6 +55,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
   const [showFloatingPlayer, setShowFloatingPlayer] = useState(false);
+  const [autoPlayEnabled, setAutoPlayEnabled] = useState(true);
+  const [isLoadingRelated, setIsLoadingRelated] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
@@ -67,8 +74,14 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       setCurrentTime(audio.currentTime);
     });
 
-    audio.addEventListener('ended', () => {
-      playNext();
+    audio.addEventListener('ended', async () => {
+      if (queue.length > 0 && currentIndex < queue.length - 1) {
+        // If there are more songs in the queue, play the next one
+        playNext();
+      } else if (autoPlayEnabled && currentSong) {
+        // If auto-play is enabled and no more songs in queue, find related songs
+        await playRelatedSong();
+      }
     });
 
     audio.addEventListener('error', (e) => {
@@ -177,6 +190,58 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     setShowFloatingPlayer(false);
   }, []);
 
+  const playRelatedSong = useCallback(async () => {
+    if (!currentSong || isLoadingRelated) return;
+
+    setIsLoadingRelated(true);
+    try {
+      // Search for related songs using artist name first, then song name as fallback
+      let searchQuery = currentSong.artist;
+      let relatedSongs = await getRelatedSongs(searchQuery);
+      
+      // If no results with artist, try with song name
+      if (relatedSongs.length === 0) {
+        searchQuery = currentSong.name;
+        relatedSongs = await getRelatedSongs(searchQuery);
+      }
+
+      if (relatedSongs.length > 0) {
+        // Filter out the current song and pick a random related song
+        const filteredSongs = relatedSongs.filter(song => song.id !== currentSong.id);
+        if (filteredSongs.length > 0) {
+          const randomIndex = Math.floor(Math.random() * filteredSongs.length);
+          const nextSong = filteredSongs[randomIndex];
+          
+          // Convert SaavnSong to Song format
+          const songToPlay: Song = {
+            id: nextSong.id,
+            name: nextSong.name,
+            artist: nextSong.primaryArtists || nextSong.artist || "Unknown Artist",
+            album: nextSong.album?.name || "Unknown Album",
+            duration: nextSong.duration || 0,
+            image: nextSong.image?.[2]?.link || nextSong.image || "",
+            url: nextSong.downloadUrl?.[4]?.link || nextSong.downloadUrl || "",
+            downloadUrl: nextSong.downloadUrl?.[4]?.link || nextSong.downloadUrl || "",
+            year: nextSong.year || null,
+            isDownloaded: false,
+            downloadedAt: null,
+            fileSize: null,
+          };
+          
+          playSong(songToPlay);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch related songs:', error);
+    } finally {
+      setIsLoadingRelated(false);
+    }
+  }, [currentSong, isLoadingRelated, playSong]);
+
+  const toggleAutoPlay = useCallback(() => {
+    setAutoPlayEnabled(prev => !prev);
+  }, []);
+
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   const value: AudioPlayerContextType = {
@@ -191,6 +256,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     currentIndex,
     showMiniPlayer,
     showFloatingPlayer,
+    autoPlayEnabled,
+    isLoadingRelated,
     
     playSong,
     pauseSong,
@@ -204,6 +271,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     setQueue,
     showFloatingPlayerModal,
     hideFloatingPlayerModal,
+    playRelatedSong,
+    toggleAutoPlay,
   };
 
   return (
